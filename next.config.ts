@@ -1,7 +1,12 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'nng-phinf.pstatic.net' }, // 치지직 프로필 이미지
+      { protocol: 'https', hostname: '*.supabase.co' },
+    ],
+  },
+}
 
-export default nextConfig;
+export default nextConfig
