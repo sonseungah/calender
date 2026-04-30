@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Cafe24Surround';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff') format('woff');
+  font-weight: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #f4f1ea;
+  --bg-soft: #ebe6dc;
+  --bg-card: #ffffff;
+  --ink: #1d2440;
+  --ink-soft: #5a607a;
+  --ink-light: #9398a8;
+  --line: #e0dccf;
+  --navy: #2a3556;
+  --navy-deep: #1d2440;
+  --cream: #f5ebd4;
+  --gold: #c9a961;
+  --cat-game: #6b8cce;
+  --cat-chat: #d4a574;
+  --cat-collab: #c97676;
+  --cat-member: #c9a961;
+  --cat-off: #a8a8a8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Cafe24Surround', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.ev-pill {
+  font-size: 11px; padding: 2px 5px; border-radius: 3px;
+  color: #fff; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; cursor: pointer; margin-top: 2px;
+}
+.ev-pill.game   { background: var(--cat-game); }
+.ev-pill.chat   { background: var(--cat-chat); }
+.ev-pill.collab { background: var(--cat-collab); }
+.ev-pill.member { background: var(--cat-member); }
+.ev-pill.off    { background: var(--cat-off); }

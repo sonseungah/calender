@@ -10,13 +10,13 @@
 - 스트리머 검색 및 탐색
 - 팔로우 버튼으로 관심 스트리머 구독
 - `/my` 페이지에서 팔로우한 스트리머들의 일정을 통합 캘린더로 확인
-- `.ics` 파일 다운로드 또는 `webcal://` 링크로 구글/애플 캘린더에 자동 구독
+- `.ics` 파일 다운로드로 구글/애플 캘린더에 일정 추가
 
 ### 스트리머
-- 치지직 계정으로 로그인 후 채널 페이지 소유
+- 이메일로 채널 등록 및 로그인
 - 월간 / 주간 / 일간 뷰에서 방송 일정 추가 · 수정 · 삭제
 - 게임 / 저챗 / 합방 / 멤버 전용 / 휴방 카테고리 분류
-- 팬들이 구독할 수 있는 `webcal://` 링크 자동 생성
+- 채널별 `.ics` 파일 다운로드 링크 제공
 
 ---
 
@@ -24,109 +24,114 @@
 
 | 구분 | 기술 |
 |------|------|
-| 프론트엔드 | Next.js 16 (App Router) · TypeScript · Tailwind CSS |
-| 백엔드 | Next.js API Routes |
-| 데이터베이스 | Supabase (PostgreSQL + RLS) |
-| 인증 | Supabase Auth + 치지직 OAuth |
-| 앱화 | PWA (manifest.json) |
-| 배포 | Vercel + Supabase |
+| 프론트엔드 | React 19 · Vite · TypeScript · Tailwind CSS |
+| 백엔드 | Node.js · Express · TypeScript |
+| 데이터베이스 | MySQL |
+| 인증 | JWT (jsonwebtoken + bcryptjs) |
+| 상태 관리 | Zustand |
+| 라우팅 | React Router DOM |
+| HTTP 클라이언트 | Axios |
 
 ---
 
 ## 프로젝트 구조
 
 ```
-app/
-├── page.tsx                        # 홈 — 스트리머 탐색 · 검색
-├── channel/[handle]/
-│   ├── page.tsx                    # 채널 페이지
-│   └── ChannelCalendar.tsx         # 캘린더 · 일정 CRUD
-├── my/
-│   └── page.tsx                    # 내 일정 (팔로우 통합 캘린더)
-└── api/calendar/
-    ├── [handle]/route.ts           # 스트리머 ICS 서빙
-    └── my/[userId]/route.ts        # 팬 통합 ICS 서빙
-
-components/
-├── Calendar/CalendarView.tsx       # 월간 · 주간 · 일간 캘린더 컴포넌트
-└── ui/
-    ├── FollowButton.tsx            # 팔로우 · 언팔 버튼
-    ├── StreamerCard.tsx            # 스트리머 카드
-    ├── NavBar.tsx                  # 데스크톱 상단 · 모바일 하단 탭바
-    └── ...
-
-lib/
-├── supabase.ts                     # 클라이언트 사이드 Supabase
-├── supabase-server.ts              # 서버 사이드 Supabase
-├── ics.ts                          # ICS 파일 생성 유틸
-└── mock.ts                         # Supabase 없이 미리보기용 목업 데이터
-
-supabase/
-└── schema.sql                      # DB 스키마 · RLS 정책
-
-types/
-└── index.ts                        # 공통 타입 정의
+scheduling/
+├── frontend/               # React + Vite 프론트엔드 (포트 5173)
+│   └── src/
+│       ├── pages/
+│       │   ├── Home.tsx        # 홈 — 스트리머 탐색 · 검색
+│       │   ├── Channel.tsx     # 채널 페이지 · 일정 CRUD
+│       │   ├── My.tsx          # 내 일정 (팔로우 통합 캘린더)
+│       │   ├── Login.tsx       # 로그인
+│       │   └── Register.tsx    # 스트리머 회원가입
+│       ├── components/
+│       │   ├── Calendar/
+│       │   │   └── CalendarView.tsx  # 월간 · 주간 · 일간 캘린더
+│       │   └── ui/
+│       │       ├── NavBar.tsx        # 데스크톱 상단 · 모바일 하단 탭바
+│       │       ├── FollowButton.tsx  # 팔로우 · 언팔 버튼
+│       │       ├── StreamerCard.tsx  # 스트리머 카드
+│       │       ├── Modal.tsx         # 공통 모달
+│       │       └── Toast.tsx         # 알림 토스트
+│       └── lib/
+│           ├── api.ts          # Axios 인스턴스 + JWT 인터셉터
+│           └── auth.ts         # Zustand 인증 스토어
+│
+└── backend/                # Express + TypeScript 백엔드 (포트 4000)
+    └── src/
+        ├── routes/
+        │   ├── auth.ts         # POST /api/auth/register, /login, GET /me
+        │   ├── streamers.ts    # GET /api/streamers, /streamers/:handle
+        │   ├── events.ts       # CRUD /api/events
+        │   ├── follows.ts      # GET/POST/DELETE /api/follows
+        │   └── calendar.ts     # GET /api/calendar/:handle (.ics)
+        ├── middleware/
+        │   └── auth.ts         # requireAuth / optionalAuth JWT 미들웨어
+        ├── db.ts               # MySQL 커넥션 풀
+        └── index.ts            # Express 앱 진입점
 ```
 
 ---
 
 ## 로컬 실행
 
-### 1. 패키지 설치
+### 1. MySQL 데이터베이스 설정
+
+MySQL에 `scheduling` 데이터베이스를 생성하고 `backend/schema.sql`을 실행합니다.
 
 ```bash
-npm install
+mysql -u root -p < backend/schema.sql
 ```
 
-### 2. 환경변수 설정
+### 2. 백엔드 환경변수 설정
 
-`.env.local` 파일을 생성하고 아래 값을 입력합니다.
+`backend/.env` 파일을 생성합니다.
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=scheduling
+DB_USER=root
+DB_PASS=yourpassword
+JWT_SECRET=your-secret-key
+PORT=4000
 ```
 
-> **Supabase 없이 바로 보고 싶다면** 환경변수를 설정하지 않아도 됩니다.
-> 목업 데이터로 자동 실행됩니다.
-
-### 3. 개발 서버 실행
+### 3. 백엔드 실행
 
 ```bash
+cd backend
+npm install
 npm run dev
 ```
 
-[http://localhost:3000](http://localhost:3000) 에서 확인할 수 있습니다.
+### 4. 프론트엔드 실행
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+[http://localhost:5173](http://localhost:5173) 에서 확인할 수 있습니다.
+
+> 프론트엔드는 Vite 프록시를 통해 `/api` 요청을 백엔드(포트 4000)로 자동 전달합니다.
 
 ---
 
-## Supabase 설정
-
-[supabase.com](https://supabase.com) 에서 프로젝트를 생성한 뒤, `supabase/schema.sql` 을 SQL Editor에서 실행하면 테이블 · RLS 정책 · 인덱스가 자동으로 생성됩니다.
+## 데이터베이스 스키마
 
 ```
-streamers   — 스트리머 채널 정보
-events      — 방송 일정
-follows     — 팬 팔로우 관계
+streamers   — 스트리머 채널 정보 (name, handle, avatar_url, follower_count)
+users       — 계정 정보 (email, password_hash, streamer_id)
+events      — 방송 일정 (date, start_time, title, category, description)
+follows     — 팬 팔로우 관계 (user_id, streamer_id)
 ```
 
 ---
 
 ## 수익화
 
-Footer에 Google AdSense 코드를 삽입하는 방식으로 운영됩니다.
-`app/page.tsx` 하단의 광고 영역 주석을 참고하세요.
-
----
-
-## 배포 (Vercel)
-
-```bash
-# Vercel CLI
-npx vercel
-
-# 또는 GitHub 연동 후 자동 배포
-```
-
-Vercel 프로젝트 환경변수에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` 을 추가하면 됩니다.
+`frontend/src/pages/Home.tsx` 하단 AdSense 영역에 Google AdSense 코드를 삽입하는 방식으로 운영됩니다.
